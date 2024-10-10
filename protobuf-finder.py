@@ -14,7 +14,7 @@ import idaapi
 import ida_bytes
 import ida_ida
 import ida_kernwin
-
+import ida_nalt
 
 # Max protobuf size - used to load code from IDA database; 
 MAX_PROTOBUF_SIZE = 0x100000
@@ -27,19 +27,19 @@ class util:
     def syntax_highlight_proto(line):
         colored_line = line
         # Strings
-        str = re.search("\".*\"",colored_line)
+        str = re.search(r"\".*\"",colored_line)
         if str:
             colored_line = colored_line[:str.start()] + idaapi.COLSTR(colored_line[str.start():str.end()], idaapi.SCOLOR_DSTR) + colored_line[str.end():]
         # Variables
-        var = re.search("\w+\s*(?==)",colored_line)
+        var = re.search(r"\w+\s*(?==)",colored_line)
         if var:
             colored_line = colored_line[:var.start()] + idaapi.COLSTR(colored_line[var.start():var.end()], idaapi.SCOLOR_CODNAME) + colored_line[var.end():]
         # Objects
-        obj = re.search("\w+\s*(?={)",colored_line)
+        obj = re.search(r"\w+\s*(?={)",colored_line)
         if obj:
             colored_line = colored_line[:obj.start()] + idaapi.COLSTR(colored_line[obj.start():obj.end()], idaapi.SCOLOR_IMPNAME) + colored_line[obj.end():]
         # Numbers
-        num = re.search("\W\d+\W",colored_line)
+        num = re.search(r"\W\d+\W",colored_line)
         if num:
             colored_line = colored_line[:num.start()] + idaapi.COLSTR(colored_line[num.start():num.end()], idaapi.SCOLOR_DNUM) + colored_line[num.end():]
 
@@ -333,7 +333,9 @@ class ProtobufExtractor:
         
         while True:
             # search binary for ".proto" string
-            r = ida_bytes.bin_search(searchStartAddr,ida_ida.MAXADDR,bytes([0x2E, 0x70, 0x72, 0x6F, 0x74,0x6F]),bytes([0xFF,0xFF,0xFF,0xFF,0xFF,0xFF]),1,1)
+            pattern = ida_bytes.compiled_binpat_vec_t()
+            ida_bytes.parse_binpat_str(pattern,0x0,'2E 70 72 6F 74 6F',16,ida_nalt.BPU_2B)
+            r, _ = ida_bytes.bin_search(searchStartAddr, ida_ida.MAXADDR, pattern, 1)
             if r == idaapi.BADADDR:
                 print("[Protobuf][dbg] Search results into BADADDR (not found). Break!")
                 break
